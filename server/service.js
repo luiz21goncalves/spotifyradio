@@ -113,4 +113,68 @@ export class Service {
       type,
     }
   }
+
+  async readFxByName(fxName) {
+    const songs = await fsPromises.readdir(config.dir.fxDirectory)
+    const chosenSong = songs.find(filename =>  filename.toLowerCase().includes(fxName))
+    
+    if (!chosenSong) return Promise.reject(`the song ${fxName} wasn't found!`)
+
+    return join(config.dir.fxDirectory, chosenSong)
+  }
+
+  appendFxStream(fx) {
+    const throttleTransformable = new Throttle(this.currentBitRate)
+    streamPromises.pipeline(
+      throttleTransformable,
+      this.broadCast()
+    )
+
+    const unpipe = () => {
+      const transformStream = this.mergeAudioStreams(fx, this.currentReadable)
+
+      this.throttleTransform = throttleTransformable
+      this.currentReadable = transformStream
+
+      this.currentReadable.removeListener('unpipe', unpipe)
+
+      streamPromises.pipeline(
+        transformStream,
+        throttleTransformable
+      )
+    }
+    
+    this.throttleTransform.on('unpipe', unpipe)
+    this.throttleTransform.pause()
+    this.currentReadable.unpipe(this.throttleTransform)
+  }
+
+  mergeAudioStreams(song, readable) {
+    const transformStream = PassThrough()
+
+    const args = [
+      '-t', config.constants.audioMediaType,
+      '-v', config.constants.songVolume,
+      '_m', '-',
+      '-t', config.constants.audioMediaType,
+      '-v', config.constants.fxVolume,
+      song,
+      '-t', config.constants.audioMediaType,
+      '-'
+    ]
+
+    const { stdout, stdin } = this._executeSoxCommand(args)
+
+    streamPromises.pipeline(
+      readable,
+      stdin
+    )
+
+    streamPromises.pipeline(
+      stdout,
+      transformStream
+    )
+
+    return transformStream
+  }
 }

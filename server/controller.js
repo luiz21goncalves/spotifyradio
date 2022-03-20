@@ -27,6 +27,12 @@ export class Controller {
       
       return response
     }
+
+    const chosenFx = await this.service.readFxByName(command)
+    logger.info(`added fx to service: ${chosenFx}`)
+    this.service.appendFxStream(chosenFx)
+
+    return response
   }
 
   createClientStream() {
