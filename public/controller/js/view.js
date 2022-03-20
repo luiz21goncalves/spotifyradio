@@ -44,7 +44,7 @@ export class View {
   }
 
   setupButtonAction(button) {
-    const text = button.innerText.toLowerCase().trim()
+    const text = button.innerText.toLowerCase()
 
     if (text.includes('start')) return
 

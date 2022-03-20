@@ -36,6 +36,7 @@ export class Service {
   }
 
   _executeSoxCommand(args) {
+    logger.info(`args: ${args}`)
    return childProcess.spawn('sox', args)
   }
 
@@ -83,7 +84,7 @@ export class Service {
 
     const bitRate = this.currentBitRate = (await this.getBitRate(this.currentSong)) / config.constants.bitRateDivisor
     
-    const throttleTransform = new Throttle(bitRate)
+    const throttleTransform = this.throttleTransform = new Throttle(bitRate)
     const songReadable = this.currentReadable = this.createFileStream(this.currentSong)
     
     return streamPromises.pipeline(songReadable, throttleTransform, this.broadCast())
@@ -155,7 +156,7 @@ export class Service {
     const args = [
       '-t', config.constants.audioMediaType,
       '-v', config.constants.songVolume,
-      '_m', '-',
+      '-m', '-',
       '-t', config.constants.audioMediaType,
       '-v', config.constants.fxVolume,
       song,
